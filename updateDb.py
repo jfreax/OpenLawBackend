@@ -152,12 +152,11 @@ if __name__ == '__main__':
             # TODO
             break
 
+        print "Insert: %s" % slug
+
         # Add laws
         db.execute('insert into Laws (slug, short_name, long_name) values (?, ?, ?)',
              [slug, name, title])
-        db.commit()
-
-        print "Insert: %s" % slug
 
         # Get headlines and law text
         law_index_html = lxml.html.parse(base_url+slug+"/index.html").getroot()
@@ -178,35 +177,8 @@ if __name__ == '__main__':
                 )' % slug,
                 [i, text])
 
-            i += 1;
-     
+            i += 1     
 
     # Flush database
     db.commit()
-exit()
-
-
-with codecs.open(output_dir + "/laws", 'w', 'utf-8') as lawsFile:
-    lawsFile.write("[\n")
-
-    while True:
-        try:
-            name,title,slug = lawIter.next()
-        except StopIteration:
-            lawsFile.write(u'["%s", "%s", "%s"]\n]' % ( name,slug,title ))
-            break
-
-        print "Loading #%i: %s" % (i, name)
-
-        lawsFile.write(u'["%s", "%s", "%s"],\n' % ( name,slug,title ))
-
-        law_index_html = lxml.html.parse(base_url+slug+"/index.html").getroot()
-        for head, text in zip(writeLawText(slug, law_index_html)):
-            print head
-
-        i = i+1
-
-if db is not None:
-    db.close()
-
     
