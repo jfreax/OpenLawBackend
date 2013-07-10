@@ -29,10 +29,18 @@ def teardown_request(exception):
         db.close()
 
 @app.route('/laws')
-def show_entries():
+def show_all_laws():
     cur = g.db.execute('select slug, short_name, long_name from Laws')
     entries = [dict(slug=row[0], short=row[1], long=row[2]) for row in cur.fetchall()]
     return render_template('laws', laws=entries)
+
+@app.route('/head/<slug>')
+def show_head_of_law():
+	return ""
+
+@app.route('/law/<slug>/<int:id>')
+def show_law_text():
+	return ""
 
 if __name__ == '__main__':
     app.run()
