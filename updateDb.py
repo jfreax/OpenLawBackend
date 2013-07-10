@@ -71,6 +71,7 @@ def getLawText(slug, html):
 
         # Skip if headline text is empty, unless its the first entry
         tmp_text = text.replace(u' ', u'').replace(u'\xa0', u'')
+        #print "Text: \"%s\"" % tmp_text
         if not first and not tmp_text:
             continue
 
@@ -141,7 +142,7 @@ def getLawText(slug, html):
 if __name__ == '__main__':
 
     # Debug
-    #slug = "aa_g"
+    #slug = "aabg"
     #law_index_html = lxml.html.parse(base_url+slug+"/index.html").getroot()
     #heads, texts = getLawText(slug, law_index_html)
     #exit(0)
@@ -170,19 +171,22 @@ if __name__ == '__main__':
         heads, texts = getLawText(slug, law_index_html)
         i = 0;
         for head, text in zip(heads, texts):
-            db.execute('insert into Law_Heads (id, law_id, depth, headline) values \
-                (?, \
-                 (select id from Laws where slug = "%s"), \
-                 ?, \
-                 ? \
-                )' % slug,
-                [i, head[0], head[1]])
+            try:
+                db.execute('insert into Law_Heads (id, law_id, depth, headline) values \
+                    (?, \
+                     (select id from Laws where slug = "%s"), \
+                     ?, \
+                     ? \
+                    )' % slug,
+                    [i, head[0], head[1]])
 
-            db.execute('insert into Law_Texts (law_id, head_id, text) values \
-                ((select id from Laws where slug = "%s"), \
-                  ?, ? \
-                )' % slug,
-                [i, text])
+                db.execute('insert into Law_Texts (law_id, head_id, text) values \
+                    ((select id from Laws where slug = "%s"), \
+                      ?, ? \
+                    )' % slug,
+                    [i, text])
+            except IntegrityError:
+                pass
 
             i += 1     
 
