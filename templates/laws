@@ -1,3 +1,6 @@
-{% for law in laws %}
-  {{ law.slug }}
-{% endfor %}
+{% autoescape false %}[
+{% for law in laws -%}
+[ "{{ law.short }}", "{{ law.slug }}", "{{ law.long }}" ] 
+{%- if not loop.last %}, {% endif %}
+{% endfor %}]
+{% endautoescape %}

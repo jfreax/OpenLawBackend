@@ -1,12 +1,15 @@
-# all the imports
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
+
 import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
 from contextlib import closing
 
+from openlawDb import connect_db
+
 
 # configuration
-DATABASE = 'openlaw.db'
 DEBUG = True
 SECRET_KEY = 'development key'
 
@@ -14,15 +17,6 @@ SECRET_KEY = 'development key'
 app = Flask(__name__)
 app.config.from_object(__name__)
 
-
-def connect_db():
-    return sqlite3.connect(app.config['DATABASE'])
-
-def init_db():
-    with closing(connect_db()) as db:
-        with app.open_resource('schema.sql', mode='r') as f:
-            db.cursor().executescript(f.read())
-        db.commit()
         
 @app.before_request
 def before_request():
@@ -34,11 +28,11 @@ def teardown_request(exception):
     if db is not None:
         db.close()
 
-@app.route('/')
+@app.route('/laws')
 def show_entries():
-    cur = g.db.execute('select slug from Laws')
-    entries = [dict(slug=row[0]) for row in cur.fetchall()]
-    return render_template('laws', entries=entries)
+    cur = g.db.execute('select slug, short_name, long_name from Laws')
+    entries = [dict(slug=row[0], short=row[1], long=row[2]) for row in cur.fetchall()]
+    return render_template('laws', laws=entries)
 
 if __name__ == '__main__':
     app.run()
