@@ -49,9 +49,20 @@ def show_head_of_law(slug):
 	entries = [dict(headline=row[0], depth=row[1]) for row in cur.fetchall()]
 	return render_template('heads', heads=entries)
 
-@app.route('/law/<slug>/<int:id>')
-def show_law_text(slug, id):
-	return ""
+@app.route('/law/<slug>/<int:i>')
+def show_law_text(slug, i):
+	cur = g.db.execute('\
+		select \
+			Law_Texts.text \
+		from \
+			Laws, \
+			Law_Texts \
+		where \
+			Law_Texts.law_id == Laws.id and \
+			Laws.slug == "%s" and \
+			Law_Texts.head_id == %i' % (slug, i))
+	text = cur.fetchall()[0][0]
+	return text
 
 if __name__ == '__main__':
 	app.run()

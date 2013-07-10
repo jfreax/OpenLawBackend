@@ -20,11 +20,12 @@ create table Law_Heads (
 
 drop table if exists Law_Texts;
 create table Law_Texts (
-  id integer,
+  law_id integer not null,
   head_id integer not null,
   text text not null,
 
-  CONSTRAINT pk_law_head_id PRIMARY KEY (id, head_id),
+  CONSTRAINT pk_law_head_id PRIMARY KEY (law_id, head_id),
+  FOREIGN KEY (law_id) REFERENCES Laws(id),
   FOREIGN KEY (head_id) REFERENCES Law_Heads(id)
 );
  

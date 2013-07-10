@@ -165,8 +165,18 @@ if __name__ == '__main__':
         i = 0;
         for head, text in zip(heads, texts):
             db.execute('insert into Law_Heads (id, law_id, depth, headline) values \
-              (?, (select id from Laws where slug = "%s"), ?, ?)' % slug,
-             [i, head[0], head[1]])
+                (?, \
+                 (select id from Laws where slug = "%s"), \
+                 ?, \
+                 ? \
+                )' % slug,
+                [i, head[0], head[1]])
+
+            db.execute('insert into Law_Texts (law_id, head_id, text) values \
+                ((select id from Laws where slug = "%s"), \
+                  ?, ? \
+                )' % slug,
+                [i, text])
 
             i += 1;
      
