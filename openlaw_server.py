@@ -34,7 +34,7 @@ def show_all_laws():
 	entries = [dict(slug=row[0], short=row[1], long=row[2]) for row in cur.fetchall()]
 	return render_template('laws', laws=entries)
 
-@app.route('/head/<slug>')
+@app.route('/<slug>')
 def show_head_of_law(slug):
 	cur = g.db.execute('\
 		select \
@@ -49,7 +49,7 @@ def show_head_of_law(slug):
 	entries = [dict(headline=row[0], depth=row[1]) for row in cur.fetchall()]
 	return render_template('heads', heads=entries)
 
-@app.route('/law/<slug>/<int:i>')
+@app.route('/<slug>/<int:i>')
 def show_law_text(slug, i):
 	cur = g.db.execute('\
 		select \
