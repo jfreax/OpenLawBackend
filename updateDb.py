@@ -2,14 +2,14 @@
 # -*- coding: utf-8 -*-
 
 import os, sys, re
-
 import codecs
 from itertools import chain
-
-import lxml.etree
-import lxml.html
+import lxml.etree, lxml.html
 
 import openlawDb
+
+# Configuration
+base_url = "http://www.gesetze-im-internet.de/"
 
 # Open db connection
 db = openlawDb.connect_db()
@@ -17,10 +17,10 @@ db = openlawDb.connect_db()
 # Delete old entries
 openlawDb.init_db()
 
-#output_dir = sys.argv[1]
-base_url = "http://www.gesetze-im-internet.de/"
+# Root node
 root_alphabet = lxml.html.parse(base_url+"aktuell.html").getroot()
 
+# Get list of all laws
 # (name, fulltitle, slug/link)
 def getAllLaws():
     ret = []
@@ -43,127 +43,136 @@ def getAllLaws():
     return ret
 
 
-def writeLawText(slug, html):
-    #head_elem = html.cssselect("#paddingLR12 td a")
+# Get headline + text for specific law
+def getLawText(slug, html):
+    # Fix: for laws without headlines
 
-    # Fix for laws without headlines
-    #if len(head_elem) == 0:
-    #    head_elem = html.cssselect("#paddingLR12 a")
-
-    directory = output_dir + '/' + slug.replace('-','_') + '/'
-    if not os.path.exists(directory):
-        os.makedirs(directory)
-
+    # Initialize helper variables
     fakeLinkIDs = []
     i = 0
     first = True
 
-    with codecs.open(directory + "heads", 'w', 'utf-8') as lawHead:
-        trs = html.xpath("//div[@id='paddingLR12']/table/tr")
+    # Return variables
+    lawHeads = []
+    lawTexts = []
 
-        if len(trs) == 0:
-            trs = html.xpath("//div[@id='paddingLR12']")
+    trs = html.xpath("//div[@id='paddingLR12']/table/tr")
+    if len(trs) == 0:
+        trs = html.xpath("//div[@id='paddingLR12']")
 
-        for tr in trs:
-            i = i+1
+    for tr in trs:
+        i = i+1
 
-            tds = tr.xpath("child::td")
-            if len(tds) == 0:
-                text = ""
-            else:
-                text = tr.xpath("child::td/descendant::text()")[-1]
+        tds = tr.xpath("child::td")
+        if len(tds) == 0:
+            text = ""
+        else:
+            text = tr.xpath("child::td/descendant::text()")[-1]
 
-            # Skip if headline text is empty, unless its the first entry
-            tmp_text = text.replace(u' ', u'').replace(u'\xa0', u'')
-            if not first and tmp_text is "":
-                continue
+        # Skip if headline text is empty, unless its the first entry
+        tmp_text = text.replace(u' ', u'').replace(u'\xa0', u'')
+        if not first and tmp_text is "":
+            continue
 
-            ###
-            # HEADLINE
-            ###
-            depth = 0
-            if len(tds) == 0:
-                head_link = tr.xpath("child::table/a/attribute::href")[0]
-                head_root = lxml.html.parse(base_url+slug+"/"+head_link).getroot()
-            else:
-                depth = len(tds)
-                if len(tds) < 3:
-                    colspan = tds[-1].xpath("attribute::colspan")[0]
-                    depth = 4 - int(colspan)
-
-                if first:
-                    if text[0] != u"§" and not text.startswith("Art"):
-                        depth = 1
-
-
-                head_link = tds[-1].xpath("child::a/attribute::href")[0]
-                head_root = lxml.html.parse(base_url+slug+"/"+head_link).getroot()
-
-            # Write headline
-            if '#' in head_link and not first:
-                lawHead.write(u"-%i: %s\n" % (depth,text))
-            else:
-                lawHead.write(u"%i: %s\n" % (depth,text))
-
-
-            ###
-            # TEXT
-            ###
-
-            # Its only a link to the whole law text rather to one part of it
-            if '#' in head_link and not first:
-                fakeLinkIDs.append(i)
-                continue
-
-            # Cleaning
-            for bad in head_root.xpath("//a[text()='Nichtamtliches Inhaltsverzeichnis']"):
-                bad.getparent().remove(bad)
-            for bad in head_root.xpath("//div[contains(@class, 'jnheader')]"):
-                bad.getparent().remove(bad)
-            for tag in head_root.xpath('//*[@class]'):
-                # For each element with a class attribute, remove that class attribute
-                tag.attrib.pop('class')
-
-
-            headHtml_elem = head_root.cssselect("#paddingLR12")
-
-            # Write text
-            with open(directory + str(i), 'w') as lawFile:
-                lawFile.write(lxml.etree.tostring(headHtml_elem[0]))
-
-            # Write "link" to real first chapters
-            if len(fakeLinkIDs) != 0:
-                for fake in fakeLinkIDs:
-                    with open(directory + str(fake), 'w') as lawFile:
-                        lawFile.write("%"+str(i)+"%")
-                fakeLinkIDs = []
+        ###
+        # HEADLINE
+        ###
+        depth = 0
+        if len(tds) == 0:
+            head_link = tr.xpath("child::table/a/attribute::href")[0]
+            head_root = lxml.html.parse(base_url+slug+"/"+head_link).getroot()
+        else:
+            depth = len(tds)
+            if len(tds) < 3:
+                colspan = tds[-1].xpath("attribute::colspan")[0]
+                depth = 4 - int(colspan)
 
             if first:
-                first = False
+                if text[0] != u"§" and not text.startswith("Art"):
+                    depth = 1
 
-# Debug
-#law_index_html = lxml.html.parse(base_url+"amg_1976/index.html").getroot()
-#writeLawText('amg_1976', law_index_html)
-#exit()
 
-# First, fetch links to all laws + short name and full name
-laws = getAllLaws()
+            head_link = tds[-1].xpath("child::a/attribute::href")[0]
+            head_root = lxml.html.parse(base_url+slug+"/"+head_link).getroot()
 
-# Iter throu' all laws
-i = 1
-lawIter = chain(laws);
-while True:
-    try:
-        name, title, slug = lawIter.next()
-    except StopIteration:
-        #lawsFile.write(u'["%s", "%s", "%s"]\n]' % ( name,slug,title ))
-        break
+        # Append headline
+        if '#' in head_link and not first:
+            lawHeads.append((-depth, text))
+        else:
+            lawHeads.append((depth, text))
 
-    db.execute('insert into Laws (slug, short_name, long_name) values (?, ?, ?)',
-         [slug, name, title])
-    print "Insert: %s" % slug
+        ###
+        # TEXT
+        ###
 
-db.commit()
+        # Its only a link to the whole law text rather to one part of it
+        if '#' in head_link and not first:
+            fakeLinkIDs.append(i)
+            continue
+
+        # Cleaning
+        for bad in head_root.xpath("//a[text()='Nichtamtliches Inhaltsverzeichnis']"):
+            bad.getparent().remove(bad)
+        for bad in head_root.xpath("//div[contains(@class, 'jnheader')]"):
+            bad.getparent().remove(bad)
+        for tag in head_root.xpath('//*[@class]'):
+            # For each element with a class attribute, remove that class attribute
+            tag.attrib.pop('class')
+
+
+        headHtml_elem = head_root.cssselect("#paddingLR12")
+
+
+        # Write "link" to real first chapters
+        if len(fakeLinkIDs) != 0:
+            for fake in fakeLinkIDs:
+                lawTexts.append("%%%i%%" % i)
+            fakeLinkIDs = []
+        else:
+            # Write text
+            lawTexts.append(lxml.etree.tostring(headHtml_elem[0]))
+
+        if first:
+            first = False
+
+    return lawHeads, lawTexts
+
+
+if __name__ == '__main__':
+    # First, fetch links to all laws + short name and full name
+    laws = getAllLaws()
+
+    # Iter throu' all laws
+    i = 1
+    lawIter = chain(laws);
+    while True:
+        try:
+            name, title, slug = lawIter.next()
+        except StopIteration:
+            # TODO
+            break
+
+        # Add laws
+        db.execute('insert into Laws (slug, short_name, long_name) values (?, ?, ?)',
+             [slug, name, title])
+        db.commit()
+
+        print "Insert: %s" % slug
+
+        # Get headlines and law text
+        law_index_html = lxml.html.parse(base_url+slug+"/index.html").getroot()
+        heads, texts = getLawText(slug, law_index_html)
+        i = 0;
+        for head, text in zip(heads, texts):
+            db.execute('insert into Law_Heads (id, law_id, depth, headline) values \
+              (?, (select id from Laws where slug = "%s"), ?, ?)' % slug,
+             [i, head[0], head[1]])
+
+            i += 1;
+     
+
+    # Flush database
+    db.commit()
 exit()
 
 
@@ -182,7 +191,8 @@ with codecs.open(output_dir + "/laws", 'w', 'utf-8') as lawsFile:
         lawsFile.write(u'["%s", "%s", "%s"],\n' % ( name,slug,title ))
 
         law_index_html = lxml.html.parse(base_url+slug+"/index.html").getroot()
-        writeLawText(slug, law_index_html)
+        for head, text in zip(writeLawText(slug, law_index_html)):
+            print head
 
         i = i+1
 
