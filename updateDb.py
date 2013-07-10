@@ -179,6 +179,6 @@ if __name__ == '__main__':
 
             i += 1     
 
-    # Flush database
-    db.commit()
+        # Flush database
+        db.commit()
     

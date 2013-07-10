@@ -8,12 +8,7 @@ from contextlib import closing
 
 from openlawDb import connect_db
 
-
-# configuration
-DEBUG = True
-SECRET_KEY = 'development key'
-
-# main app
+# Main app
 app = Flask(__name__)
 app.config.from_object(__name__)
 
