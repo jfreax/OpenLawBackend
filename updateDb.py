@@ -71,7 +71,7 @@ def getLawText(slug, html):
 
         # Skip if headline text is empty, unless its the first entry
         tmp_text = text.replace(u' ', u'').replace(u'\xa0', u'')
-        if not first and tmp_text is "":
+        if not first and not tmp_text:
             continue
 
         ###
@@ -139,6 +139,13 @@ def getLawText(slug, html):
 
 
 if __name__ == '__main__':
+
+    # Debug
+    #slug = "aa_g"
+    #law_index_html = lxml.html.parse(base_url+slug+"/index.html").getroot()
+    #heads, texts = getLawText(slug, law_index_html)
+    #exit(0)
+
     # First, fetch links to all laws + short name and full name
     laws = getAllLaws()
 
