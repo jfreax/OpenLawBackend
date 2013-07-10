@@ -61,8 +61,6 @@ def getLawText(slug, html):
         trs = html.xpath("//div[@id='paddingLR12']")
 
     for tr in trs:
-        i = i+1
-
         tds = tr.xpath("child::td")
         if len(tds) == 0:
             text = ""
@@ -135,7 +133,8 @@ def getLawText(slug, html):
 
         if first:
             first = False
-
+            
+        i = i+1
     return lawHeads, lawTexts
 
 
