@@ -39,7 +39,7 @@ def getAllLaws():
                     ret.append((
                             re.escape(el_title.text.lstrip(' ').rstrip(' ')),
                             re.escape(el_title.attrib['title']),
-                            el_link.attrib['href'][2:-11]
+                            (el_link.attrib['href'][2:-11]).replace('-', '_')
                         ))
     return ret
 
