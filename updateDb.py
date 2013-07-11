@@ -121,19 +121,18 @@ def getLawText(slug, html):
 
         headHtml_elem = head_root.cssselect("#paddingLR12")
 
-
         # Write "link" to real first chapters
         if len(fakeLinkIDs) != 0:
             for fake in fakeLinkIDs:
                 lawTexts.append("%%%i%%" % i)
             fakeLinkIDs = []
-        else:
-            # Write text
-            lawTexts.append(lxml.etree.tostring(headHtml_elem[0]))
+
+        # Write text
+        lawTexts.append(lxml.etree.tostring(headHtml_elem[0]))
 
         if first:
             first = False
-            
+
         i = i+1
     return lawHeads, lawTexts
 
@@ -141,10 +140,14 @@ def getLawText(slug, html):
 if __name__ == '__main__':
 
     # Debug
-    #slug = "aabg"
-    #law_index_html = lxml.html.parse(base_url+slug+"/index.html").getroot()
-    #heads, texts = getLawText(slug, law_index_html)
-    #exit(0)
+    slug = "bshg_47v"
+    law_index_html = lxml.html.parse(base_url+slug+"/index.html").getroot()
+    heads, texts = getLawText(slug, law_index_html)
+    #print texts[0]
+    print texts[1]
+    print texts[2]
+    print texts[3]
+    exit(0)
 
     # First, fetch links to all laws + short name and full name
     laws = getAllLaws()
@@ -178,13 +181,16 @@ if __name__ == '__main__':
                      ? \
                     )' % slug,
                     [i, head[0], head[1]])
+            except IntegrityError, e:
+                pass
 
+            try:
                 db.execute('insert into Law_Texts (law_id, head_id, text) values \
                     ((select id from Laws where slug = "%s"), \
                       ?, ? \
                     )' % slug,
                     [i, text])
-            except IntegrityError:
+            except IntegrityError, e:
                 pass
 
             i += 1     
