@@ -5,6 +5,7 @@ import os, sys, re
 import codecs
 from itertools import chain
 import lxml.etree, lxml.html
+from sqlite3 import IntegrityError
 
 import openlawDb
 
@@ -177,7 +178,7 @@ if __name__ == '__main__':
                      ? \
                     )' % slug,
                     [i, head[0], head[1]])
-            except IntegrityError, e:
+            except IntegrityError:
                 pass
 
             try:
@@ -186,7 +187,7 @@ if __name__ == '__main__':
                       ?, ? \
                     )' % slug,
                     [i, text])
-            except IntegrityError, e:
+            except IntegrityError:
                 pass
 
             i += 1     
