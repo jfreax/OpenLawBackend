@@ -140,14 +140,10 @@ def getLawText(slug, html):
 if __name__ == '__main__':
 
     # Debug
-    slug = "bshg_47v"
-    law_index_html = lxml.html.parse(base_url+slug+"/index.html").getroot()
-    heads, texts = getLawText(slug, law_index_html)
-    #print texts[0]
-    print texts[1]
-    print texts[2]
-    print texts[3]
-    exit(0)
+    #slug = "bshg_47v"
+    #law_index_html = lxml.html.parse(base_url+slug+"/index.html").getroot()
+    #heads, texts = getLawText(slug, law_index_html)
+    #exit(0)
 
     # First, fetch links to all laws + short name and full name
     laws = getAllLaws()
