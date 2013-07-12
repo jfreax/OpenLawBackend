@@ -1,3 +1,10 @@
+drop table if exists Version;
+create table Version (
+  w string primary key,
+  version integer not null
+);
+
+
 drop table if exists Laws;
 create table Laws (
   id integer primary key autoincrement,

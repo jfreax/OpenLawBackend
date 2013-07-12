@@ -15,6 +15,13 @@ base_url = "http://www.gesetze-im-internet.de/"
 # Open db connection
 db = openlawDb.connect_db()
 
+# Read current version numbers
+cur = db.execute('select version from Version where w = "laws"')
+try:
+    law_version, = cur.next()
+except StopIteration:
+    law_version = 1
+
 # Delete old entries
 openlawDb.init_db()
 
@@ -195,3 +202,5 @@ if __name__ == '__main__':
         # Flush database
         db.commit()
     
+    # Update version numbers
+    db.execute('replace into Version values ( "laws", ? )', [law_version+1])
