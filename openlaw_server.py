@@ -5,6 +5,7 @@ import sqlite3
 from flask import Flask, request, session, g, redirect, url_for, \
      abort, render_template, flash
 from contextlib import closing
+import thread
 
 from openlawDb import connect_db
 from piwikAuth import getAuthToken
@@ -28,6 +29,12 @@ piwiktracker = PiwikTracker(PIWIK_SITE_ID, piwikrequest)
 piwiktracker.set_api_url(PIWIK_TRACKING_API_URL)
 AUTH_TOKEN_STRING = getAuthToken();
 
+# Tracking method
+def do_piwik(ip, url):
+	piwiktracker.set_ip(ip)
+	piwiktracker.set_token_auth(AUTH_TOKEN_STRING)
+	piwiktracker.do_track_page_view(url)
+
 # Main app
 app = Flask(__name__)
 app.config.from_object(__name__)
@@ -48,9 +55,7 @@ def show_all_laws():
 	cur = g.db.execute('select slug, short_name, long_name from Laws')
 	entries = [dict(slug=row[0], short=row[1], long=row[2]) for row in cur.fetchall()]
 
-	piwiktracker.set_ip(request.remote_addr)
-	piwiktracker.set_token_auth(AUTH_TOKEN_STRING)
-	piwiktracker.do_track_page_view('laws')
+	thread.start_new_thread(do_piwik, (request.remote_addr, 'laws'))
 
 	return render_template('laws', laws=entries)
 
@@ -68,9 +73,7 @@ def show_head_of_law(slug):
 			and Laws.slug == ?', [slug])
 	entries = [dict(headline=row[0], depth=row[1]) for row in cur.fetchall()]
 
-	piwiktracker.set_ip(request.remote_addr)
-	piwiktracker.set_token_auth(AUTH_TOKEN_STRING)
-	piwiktracker.do_track_page_view('%s' % (slug))
+	thread.start_new_thread(do_piwik, (request.remote_addr, slug))
 
 	return render_template('heads', heads=entries)
 
@@ -88,9 +91,7 @@ def show_law_text(slug, i):
 			Law_Texts.head_id == ?', [slug, i])
 	text = cur.fetchall()[0][0]
 
-	piwiktracker.set_ip(request.remote_addr)
-	piwiktracker.set_token_auth(AUTH_TOKEN_STRING)
-	piwiktracker.do_track_page_view('%s/%i' % (slug,i))
+	thread.start_new_thread(do_piwik, (request.remote_addr, '%s/%i' % (slug,i)))
 
 	return text
 
