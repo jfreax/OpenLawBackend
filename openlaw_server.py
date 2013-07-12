@@ -40,7 +40,7 @@ def show_head_of_law(slug):
 			Law_Heads \
 		where \
 			Law_Heads.law_id == Laws.id \
-			and Laws.slug == "%s"' % slug)
+			and Laws.slug == ?', [slug])
 	entries = [dict(headline=row[0], depth=row[1]) for row in cur.fetchall()]
 	return render_template('heads', heads=entries)
 
@@ -54,8 +54,8 @@ def show_law_text(slug, i):
 			Law_Texts \
 		where \
 			Law_Texts.law_id == Laws.id and \
-			Laws.slug == "%s" and \
-			Law_Texts.head_id == %i' % (slug, i))
+			Laws.slug == ? and \
+			Law_Texts.head_id == ?', [slug, i])
 	text = cur.fetchall()[0][0]
 	return text
 
