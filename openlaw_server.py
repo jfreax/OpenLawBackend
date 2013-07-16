@@ -9,6 +9,7 @@ import thread
 
 from openlawDb import connect_db
 from piwikAuth import getAuthToken
+from urllib import unquote
 
 from piwikapi.tracking import PiwikTracker
 from piwikapi.tests.request import FakeRequest
@@ -30,10 +31,12 @@ piwiktracker.set_api_url(PIWIK_TRACKING_API_URL)
 AUTH_TOKEN_STRING = getAuthToken();
 
 # Tracking method
-def do_piwik(ip, url):
+def do_piwik(ip, url, title):
 	piwiktracker.set_ip(ip)
 	piwiktracker.set_token_auth(AUTH_TOKEN_STRING)
-	piwiktracker.do_track_page_view(url)
+	piwiktracker.set_url("http://"+url)
+	title = title.encode('ascii',"ignore")
+	piwiktracker.do_track_page_view(title)
 
 # Main app
 app = Flask(__name__)
@@ -73,7 +76,17 @@ def show_head_of_law(slug):
 			and Laws.slug == ?', [slug])
 	entries = [dict(headline=row[0], depth=row[1]) for row in cur.fetchall()]
 
-	thread.start_new_thread(do_piwik, (request.remote_addr, slug))
+	cur = g.db.execute('\
+		select \
+			Laws.long_name \
+		from \
+			Laws \
+		where \
+			Laws.slug == ?', [slug])
+	law_name = cur.fetchall()[0][0]
+	thread.start_new_thread(do_piwik,
+		(request.remote_addr, headers["SERVER_NAME"]+"/"+slug, u"%s - %s" % (slug, law_name.replace(u'\\', u'')))
+	)
 
 	return render_template('heads', heads=entries)
 
@@ -81,17 +94,24 @@ def show_head_of_law(slug):
 def show_law_text(slug, i):
 	cur = g.db.execute('\
 		select \
-			Law_Texts.text \
+			Law_Texts.text, \
+			Law_Heads.headline \
 		from \
 			Laws, \
-			Law_Texts \
+			Law_Texts, \
+			Law_Heads \
 		where \
 			Law_Texts.law_id == Laws.id and \
 			Laws.slug == ? and \
-			Law_Texts.head_id == ?', [slug, i])
-	text = cur.fetchall()[0][0]
+			Law_Heads.law_id == ? and \
+			Law_Texts.head_id == ?', [slug, i, i])
+	fetchs = cur.fetchall()
+	text = fetchs[0][0]
+	headline = fetchs[0][1]
 
-	thread.start_new_thread(do_piwik, (request.remote_addr, '%s/%i' % (slug,i)))
+	thread.start_new_thread(do_piwik, 
+		(request.remote_addr, headers["SERVER_NAME"]+"/"+slug+"/"+str(i), u"%s - %s" % (slug, headline.replace(u'\\', u'')))
+	)
 
 	return text
 
