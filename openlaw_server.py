@@ -2,10 +2,12 @@
 # -*- coding: utf-8 -*-
 
 import sqlite3
-from flask import Flask, request, session, g, redirect, url_for, \
-     abort, render_template, flash
+from flask import Flask, Response, request, session, g, redirect, url_for, \
+     abort, render_template, flash, jsonify
 from contextlib import closing
 import thread
+
+from functools import wraps
 
 from openlawDb import connect_db
 from piwikAuth import getAuthToken
@@ -14,7 +16,8 @@ from urllib import unquote
 from piwikapi.tracking import PiwikTracker
 from piwikapi.tests.request import FakeRequest
 
-# Config
+# Config #
+##########
 PIWIK_SITE_ID = 2
 PIWIK_TRACKING_API_URL = "http://piwik.jdsoft.de/piwik.php"
 
@@ -30,7 +33,8 @@ piwiktracker = PiwikTracker(PIWIK_SITE_ID, piwikrequest)
 piwiktracker.set_api_url(PIWIK_TRACKING_API_URL)
 AUTH_TOKEN_STRING = getAuthToken();
 
-# Tracking method
+# Tracking method #
+###################
 def do_piwik(ip, url, title):
 	piwiktracker.set_ip(ip)
 	piwiktracker.set_token_auth(AUTH_TOKEN_STRING)
@@ -38,7 +42,23 @@ def do_piwik(ip, url, title):
 	title = title.encode('ascii',"ignore")
 	piwiktracker.do_track_page_view(title)
 
-# Main app
+# Decorations #
+###############
+def support_jsonp(f):
+    """Wraps JSONified output for JSONP"""
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        callback = request.args.get('callback', False)
+        if callback:
+            content = str(callback) + '(' + str(f().data) + ')'
+            return app.response_class(content, mimetype='application/json; charset=utf-8')
+        else:
+            return f(*args, **kwargs)
+    return decorated_function
+ 
+
+# Main app #
+############
 app = Flask(__name__)
 app.config.from_object(__name__)
 
@@ -54,13 +74,17 @@ def teardown_request(exception):
 		db.close()
 
 @app.route('/laws')
+@support_jsonp
 def show_all_laws():
 	cur = g.db.execute('select slug, short_name, long_name from Laws')
 	entries = [dict(slug=row[0], short=row[1], long=row[2]) for row in cur.fetchall()]
 
 	thread.start_new_thread(do_piwik, (request.remote_addr, headers["SERVER_NAME"]+"/laws", "laws"))
-
-	return render_template('laws', laws=entries)
+	
+	response = Response(response = render_template('laws', laws=entries),
+			status = 200,
+			mimetype = "application/json; charset=utf-8")
+	return response
 
 @app.route('/<slug>')
 def show_head_of_law(slug):
@@ -116,5 +140,6 @@ def show_law_text(slug, i):
 	return text
 
 if __name__ == '__main__':
+        app.debug = True
 	app.run()
 
