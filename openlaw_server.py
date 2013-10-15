@@ -58,7 +58,7 @@ def show_all_laws():
 	cur = g.db.execute('select slug, short_name, long_name from Laws')
 	entries = [dict(slug=row[0], short=row[1], long=row[2]) for row in cur.fetchall()]
 
-	thread.start_new_thread(do_piwik, (request.remote_addr, 'laws'))
+	thread.start_new_thread(do_piwik, (request.remote_addr, headers["SERVER_NAME"]+"/laws", "laws"))
 
 	return render_template('laws', laws=entries)
 
