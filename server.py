@@ -1,18 +1,17 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-import sqlite3
 from flask import Flask, Response, request, session, g, redirect, url_for, \
      abort, render_template, flash, jsonify
 from contextlib import closing
-import thread
-
-from functools import wraps
-
-from openlawDb import connect_db
-from piwikAuth import getAuthToken
 from urllib import unquote
+from functools import wraps
+import thread
+import sqlite3
 
+from db import connect_db
+
+from piwik_config import getAuthToken
 from piwikapi.tracking import PiwikTracker
 from piwikapi.tests.request import FakeRequest
 
