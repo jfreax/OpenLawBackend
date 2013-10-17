@@ -77,7 +77,7 @@ def show_all_laws():
         )
 
 
-@app.route('/law/<slug>')
+@app.route('/laws/<slug>')
 def show_head_of_law(slug):
     cur = g.db.execute('\
         select \
@@ -114,7 +114,7 @@ def show_head_of_law(slug):
         )
 
 
-@app.route('/law/<slug>/<int:i>')
+@app.route('/laws/<slug>/<int:i>')
 def show_law_text(slug, i):
     cur = g.db.execute('\
         select \
