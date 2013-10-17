@@ -11,29 +11,17 @@ import sqlite3
 
 from db import connect_db
 
-from piwik_config import getAuthToken
+from piwik_config import *
 from piwikapi.tracking import PiwikTracker
 from piwikapi.tests.request import FakeRequest
 
-# Config #
-##########
-PIWIK_SITE_ID = 2
-PIWIK_TRACKING_API_URL = "http://piwik.jdsoft.de/piwik.php"
-
-# Simple piwik tracking setup
-headers = {
-    'HTTP_USER_AGENT': 'OpenLaw API Server',
-    'SERVER_NAME': 'api.openlaw.jdsoft.de',
-    'HTTPS': False,
-}
-
-piwikrequest = FakeRequest(headers)
-piwiktracker = PiwikTracker(PIWIK_SITE_ID, piwikrequest)
-piwiktracker.set_api_url(PIWIK_TRACKING_API_URL)
-AUTH_TOKEN_STRING = getAuthToken();
 
 # Tracking method #
 ###################
+piwikrequest = FakeRequest(headers)
+piwiktracker = PiwikTracker(PIWIK_SITE_ID, piwikrequest)
+piwiktracker.set_api_url(PIWIK_TRACKING_API_URL)
+
 def do_piwik(ip, url, title):
     piwiktracker.set_ip(ip)
     piwiktracker.set_token_auth(AUTH_TOKEN_STRING)
@@ -149,4 +137,5 @@ def not_found(error):
 if __name__ == '__main__':
     app.debug = True
     app.run()
+    
 
