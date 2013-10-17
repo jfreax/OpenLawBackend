@@ -70,10 +70,11 @@ def show_all_laws():
 
     thread.start_new_thread(do_piwik, (request.remote_addr, headers["SERVER_NAME"]+"/laws", "laws"))
     
-    response = Response(response = render_template('laws', laws=entries),
+    return Response(
+            response = render_template('laws', laws=entries),
             status = 200,
-            mimetype = "application/json; charset=utf-8")
-    return response
+            mimetype = "application/json; charset=utf-8"
+        )
 
 
 @app.route('/law/<slug>')
@@ -106,7 +107,11 @@ def show_head_of_law(slug):
         (request.remote_addr, headers["SERVER_NAME"]+"/"+slug, u"%s - %s" % (slug, law_name.replace(u'\\', u'')))
     )
 
-    return render_template('heads', heads=entries)
+    return Response(
+            response = render_template('heads', heads=entries),
+            status = 200,
+            mimetype = "application/json; charset=utf-8"
+        )
 
 
 @app.route('/law/<slug>/<int:i>')
@@ -135,17 +140,16 @@ def show_law_text(slug, i):
         (request.remote_addr, headers["SERVER_NAME"]+"/"+slug+"/"+str(i), u"%s - %s" % (slug, headline.replace(u'\\', u'')))
     )
 
-    return text
+    return Response(
+            response = text,
+            status = 200,
+            mimetype = "application/json; charset=utf-8"
+        )
 
 
 @app.errorhandler(404)
 def not_found(error):
-    return make_response(
-        jsonify( {
-            'error': 'Not found',
-            'code': '404' }
-        ), 404)
-
+    return make_response(jsonify( { 'error': 'Not found' } ), 404)
 
 if __name__ == '__main__':
     app.debug = True

@@ -1,3 +1,5 @@
+{% autoescape false %}[
 {% for head in heads -%}
-{{head.depth}}: {{ head.headline }}
-{% endfor %}
+[ "{{ head.headline }}"m "{{head.depth}}" ]
+{% endfor %}]
+{% endautoescape %}
