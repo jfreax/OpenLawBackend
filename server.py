@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 
 from flask import Flask, Response, request, session, g, redirect, url_for, \
-     abort, render_template, flash, jsonify
+     abort, render_template, flash, jsonify, make_response
 from contextlib import closing
 from urllib import unquote
 from functools import wraps
@@ -54,11 +54,13 @@ app.config.from_object(__name__)
 def before_request():
     g.db = connect_db()
 
+
 @app.teardown_request
 def teardown_request(exception):
     db = getattr(g, 'db', None)
     if db is not None:
         db.close()
+
 
 @app.route('/laws')
 @support_jsonp
@@ -72,6 +74,7 @@ def show_all_laws():
             status = 200,
             mimetype = "application/json; charset=utf-8")
     return response
+
 
 @app.route('/<slug>')
 def show_head_of_law(slug):
@@ -94,12 +97,17 @@ def show_head_of_law(slug):
             Laws \
         where \
             Laws.slug == ?', [slug])
-    law_name = cur.fetchall()[0][0]
+    fetchs = cur.fetchone()
+    if fetchs is None:
+        abort(404)
+    
+    law_name = fetchs[0]
     thread.start_new_thread(do_piwik,
         (request.remote_addr, headers["SERVER_NAME"]+"/"+slug, u"%s - %s" % (slug, law_name.replace(u'\\', u'')))
     )
 
     return render_template('heads', heads=entries)
+
 
 @app.route('/<slug>/<int:i>')
 def show_law_text(slug, i):
@@ -116,9 +124,12 @@ def show_law_text(slug, i):
             Laws.slug == ? and \
             Law_Heads.law_id == ? and \
             Law_Texts.head_id == ?', [slug, i, i])
-    fetchs = cur.fetchall()
-    text = fetchs[0][0]
-    headline = fetchs[0][1]
+    fetchs = cur.fetchone()
+    if fetchs is None:
+        abort(404)
+
+    text = fetchs[0]
+    headline = fetchs[1]
 
     thread.start_new_thread(do_piwik, 
         (request.remote_addr, headers["SERVER_NAME"]+"/"+slug+"/"+str(i), u"%s - %s" % (slug, headline.replace(u'\\', u'')))
@@ -126,16 +137,17 @@ def show_law_text(slug, i):
 
     return text
 
+
 @app.errorhandler(404)
 def not_found(error):
     return make_response(
-        jsonify( { 
+        jsonify( {
             'error': 'Not found',
             'code': '404' }
         ), 404)
 
+
 if __name__ == '__main__':
     app.debug = True
     app.run()
-    
 
