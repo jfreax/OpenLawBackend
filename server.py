@@ -67,14 +67,14 @@ def teardown_request(exception):
 def show_all_laws():
     try:
         items = int(request.args.get('items', 10))
-        page = int(request.args.get('page', -2))
+        page = int(request.args.get('page', -1))
     except ValueError:
         abort(400)
-    
-    limit_start = page * items
-    limit_stop = limit_start + items
+        
+    if page == -1:
+        items = -1
   
-    cur = g.db.execute('select slug, short_name, long_name from Laws limit ?,?', [limit_start, limit_stop])
+    cur = g.db.execute('select slug, short_name, long_name from Laws limit ?,?', [page*items, items])
     entries = [dict(slug=row[0], short=row[1], long=row[2]) for row in cur.fetchall()]
 
     thread.start_new_thread(do_piwik, (request.remote_addr, headers["SERVER_NAME"]+"/laws", "laws"))
