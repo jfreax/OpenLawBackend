@@ -8,10 +8,11 @@ from urllib import unquote
 from functools import wraps
 import thread
 import sqlite3
+import json
 
 from db import connect_db
 
-from piwik_config import *
+from config import *
 from piwikapi.tracking import PiwikTracker
 from piwikapi.tests.request import FakeRequest
 
@@ -48,6 +49,7 @@ def support_jsonp(f):
 ############
 app = Flask(__name__)
 app.config.from_object(__name__)
+app.config['SERVER_NAME'] = SERVER_NAME
 
 
 @app.before_request
@@ -75,15 +77,22 @@ def show_all_laws():
         items = -1
   
     cur = g.db.execute('select slug, short_name, long_name from Laws limit ?,?', [page*items, items])
-    entries = [dict(slug=row[0], short=row[1], long=row[2]) for row in cur.fetchall()]
+    
+    ret = { "paging":  {}, }
+    ret['data'] = [ [row[1].replace(u'\\', u''),
+                     row[0].replace(u'\\', u''),
+                     row[2].replace(u'\\', u'')] for row in cur.fetchall()]
+
+    if len(ret['data']) == 0:
+        abort(400)
+    if page > 0:
+        ret['paging']['previous'] = url_for('.show_all_laws', page=page-1, items=items, _external=True)
+    if len(ret['data']) == items:
+        ret['paging']['next'] = url_for('.show_all_laws', page=page+1, items=items, _external=True)      
 
     thread.start_new_thread(do_piwik, (request.remote_addr, headers["SERVER_NAME"]+"/laws", "laws"))
-    
-    return Response(
-            response = render_template('laws', laws=entries),
-            status = 200,
-            mimetype = "application/json; charset=utf-8"
-        )
+    return jsonify(ret)
+
 
 
 @app.route('/laws/<slug>')
