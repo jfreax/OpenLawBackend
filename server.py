@@ -64,9 +64,27 @@ def teardown_request(exception):
         db.close()
 
 
-@app.route('/laws')
+@app.route('/land')
 @support_jsonp
-def show_all_laws():
+def show_all_lands():
+    count_cur = g.db.execute('select count() from Laws')
+    count = count_cur.fetchone()[0]
+
+    ret = {
+        'data': [
+              {'id': '1',
+               'name': 'Bundesgesetze',
+               'name-en': 'German Federal Law',
+               'count': count
+              }
+            ]
+        }
+    return jsonify(ret)
+
+
+@app.route('/land/<int:id>/laws')
+@support_jsonp
+def show_all_laws(id):
     try:
         items = int(request.args.get('items', 10))
         page = int(request.args.get('page', -1))
@@ -76,14 +94,10 @@ def show_all_laws():
     if page == -1:
         items = -1
   
-    count_cur = g.db.execute('select count() from Laws')
-    count = count_cur.fetchone()[0]
 
     cur = g.db.execute('select slug, short_name, long_name from Laws limit ?,?', [page*items, items])
     
-    ret = { "paging": {},
-            "count": count,
-           }
+    ret = { "paging": {}, }
     ret['data'] = [ [row[1].replace(u'\\', u''),
                      row[0].replace(u'\\', u''),
                      row[2].replace(u'\\', u'')] for row in cur.fetchall()]
@@ -100,7 +114,7 @@ def show_all_laws():
 
 
 
-@app.route('/laws/<slug>')
+@app.route('/land/<int:id>/laws/<slug>')
 @support_jsonp
 def show_head_of_law(slug):
     cur = g.db.execute('\
@@ -138,7 +152,7 @@ def show_head_of_law(slug):
         )
 
 
-@app.route('/laws/<slug>/<int:i>')
+@app.route('/land/<int:id>/laws/<slug>/<int:i>')
 @support_jsonp
 def show_law_text(slug, i):
     cur = g.db.execute('\
