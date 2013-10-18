@@ -119,7 +119,10 @@ def show_all_laws(id):
     if page == -1:
         items = -1
   
-    cur = g.db.execute('select slug, short_name, long_name from Laws limit ?,?', [page*items, items])
+    cur = g.db.execute('\
+        select slug, short_name, long_name \
+        from   Laws \
+        limit ?,?', [page*items, items])
     
     ret = { "paging": {}, }
     ret['data'] = [ [row[1].replace(u'\\', u''),
@@ -148,12 +151,9 @@ def show_all_laws(id):
 )
 def show_head_of_law(id, slug):
     cur = g.db.execute('\
-        select \
-            Laws.long_name \
-        from \
-            Laws \
-        where \
-            Laws.slug == ?', [slug])
+        select Laws.long_name \
+        from   Laws \
+        where  Laws.slug == ?', [slug])
     fetchs = cur.fetchone()
     if fetchs is None:
         abort(404)
@@ -164,16 +164,10 @@ def show_head_of_law(id, slug):
     )
   
     cur = g.db.execute('\
-        select \
-            Law_Heads.id, \
-            Law_Heads.headline, \
-            Law_Heads.depth \
-        from \
-            Laws, \
-            Law_Heads \
-        where \
-            Law_Heads.law_id == Laws.id \
-            and Laws.slug == ?', [slug])
+        select Law_Heads.id, Law_Heads.headline, Law_Heads.depth \
+        from   Laws, Law_Heads \
+        where  Law_Heads.law_id == Laws.id and \
+               Laws.slug == ?', [slug])
 
     ret = {}
     ret['data'] = [ {'id': row[0],
@@ -193,17 +187,12 @@ def show_head_of_law(id, slug):
 )
 def show_law_text(id, slug, i):
     cur = g.db.execute('\
-        select \
-            Law_Texts.text, \
-            Law_Heads.headline \
-        from \
-            Laws, \
-            Law_Texts, \
-            Law_Heads \
-        where \
-            Law_Texts.law_id == Laws.id and \
-            Laws.slug == ? and \
-            Law_Texts.head_id == ? limit 1', [slug, i])
+        select Law_Texts.text, Law_Heads.headline \
+        from   Laws, Law_Texts, Law_Heads \
+        where  Law_Texts.law_id == Laws.id and \
+               Laws.slug == ? and \
+               Law_Texts.head_id == ?
+        limit 1', [slug, i])
     fetchs = cur.fetchone()
     if fetchs is None:
         abort(404)
