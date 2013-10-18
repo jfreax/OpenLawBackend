@@ -17,8 +17,7 @@ from piwikapi.tracking import PiwikTracker
 from piwikapi.tests.request import FakeRequest
 
 
-# Tracking method #
-###################
+# Tracking method
 piwikrequest = FakeRequest(headers)
 piwiktracker = PiwikTracker(PIWIK_SITE_ID, piwikrequest)
 piwiktracker.set_api_url(PIWIK_TRACKING_API_URL)
@@ -30,8 +29,8 @@ def do_piwik(ip, url, title):
     title = title.encode('ascii',"ignore")
     piwiktracker.do_track_page_view(title)
 
-# Decorations #
-###############
+
+# Decoration to support jsonp
 def support_jsonp(f):
     """Wraps JSONified output for JSONP"""
     @wraps(f)
@@ -43,15 +42,15 @@ def support_jsonp(f):
         else:
             return f(*args, **kwargs)
     return decorated_function
- 
 
-# Main app #
-############
+
+# Initialize flask
 app = Flask(__name__)
 app.config.from_object(__name__)
 app.config['SERVER_NAME'] = SERVER_NAME
 
 
+# Spin up and tear down database connection
 @app.before_request
 def before_request():
     g.db = connect_db()
@@ -64,6 +63,9 @@ def teardown_request(exception):
         db.close()
 
 
+# Get a list of all available countries
+# Only id is needed for the other ressources
+# TODO use db to query available countries
 @app.route('/land')
 @support_jsonp
 def show_all_lands():
@@ -82,6 +84,12 @@ def show_all_lands():
     return jsonify(ret)
 
 
+# Show all law codes from specified country
+# Get all available id's with /land
+# Abort with code 400 when country id does not exist
+#
+# Pagination is supported. 10 items per page is standard.
+# Abort with code 400 when page number is invalid
 @app.route('/land/<int:id>/laws')
 @support_jsonp
 def show_all_laws(id):
@@ -113,7 +121,9 @@ def show_all_laws(id):
     return jsonify(ret)
 
 
-
+# Get all headlines from specified country and law code slug.
+# Slugs are a short name unique for every law code
+# Query all available slugs with 'show_all_laws'
 @app.route('/land/<int:id>/laws/<slug>')
 @support_jsonp
 def show_head_of_law(slug):
@@ -152,6 +162,8 @@ def show_head_of_law(slug):
         )
 
 
+# Get law text from one specific law code.
+# Use headline id from 'show_head_of_law'.
 @app.route('/land/<int:id>/laws/<slug>/<int:i>')
 @support_jsonp
 def show_law_text(slug, i):
@@ -186,6 +198,7 @@ def show_law_text(slug, i):
         )
 
 
+# Custom http return code pages
 @app.errorhandler(404)
 def not_found(error):
     return make_response(jsonify( { 'error': 'Not found' } ), 404)
