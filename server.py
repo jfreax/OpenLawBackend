@@ -197,8 +197,7 @@ def show_law_text(id, slug, i):
         where \
             Law_Texts.law_id == Laws.id and \
             Laws.slug == ? and \
-            Law_Heads.law_id == ? and \
-            Law_Texts.head_id == ?', [slug, i, i])
+            Law_Texts.head_id == ? limit 1', [slug, i])
     fetchs = cur.fetchone()
     if fetchs is None:
         abort(404)
