@@ -32,14 +32,20 @@ def do_piwik(ip, url, title):
 
 
 # Decoration to support jsonp
+# See: https://gist.github.com/aisipos/1094140
 def support_jsonp(f):
     """Wraps JSONified output for JSONP"""
     @wraps(f)
     def decorated_function(*args, **kwargs):
         callback = request.args.get('callback', False)
         if callback:
-            content = str(callback) + '(' + str(f().data) + ')'
-            return app.response_class(content, mimetype='application/json; charset=utf-8')
+            data = f(*args,**kwargs)
+            if isinstance(data, Response):
+                data = data.data
+            else:
+                data = str(data)
+            content = str(callback) + '(' + data + ')'
+            return app.response_class(content, mimetype='application/javascript')
         else:
             return f(*args, **kwargs)
     return decorated_function
@@ -70,11 +76,11 @@ def teardown_request(exception):
 # Only id is needed for the other ressources
 # TODO use db to query available countries
 @app.route('/land')
+@support_jsonp
 @mimerender(
     default = 'json',
     json = render_json,
 )
-@support_jsonp
 def show_all_lands():
     count_cur = g.db.execute('select count() from Laws')
     count = count_cur.fetchone()[0]
@@ -93,16 +99,16 @@ def show_all_lands():
 
 # Show all law codes from specified country
 # Get all available id's with /land
-# Abort with code 404 when country id does not exist
+# TODO Abort with code 404 when country id does not exist
 #
 # Pagination is supported. 10 items per page is standard.
 # Abort with code 400 when page number is invalid
 @app.route('/land/<int:id>/laws')
+@support_jsonp
 @mimerender(
     default = 'json',
     json = render_json,
 )
-@support_jsonp
 def show_all_laws(id):
     try:
         items = int(request.args.get('items', 10))
@@ -123,9 +129,9 @@ def show_all_laws(id):
     if len(ret['data']) == 0:
         abort(400)
     if page > 0:
-        ret['paging']['previous'] = url_for('.show_all_laws', page=page-1, items=items, _external=True)
+        ret['paging']['previous'] = url_for('.show_all_laws', id=id, page=page-1, items=items, _external=True)
     if len(ret['data']) == items:
-        ret['paging']['next'] = url_for('.show_all_laws', page=page+1, items=items, _external=True)      
+        ret['paging']['next'] = url_for('.show_all_laws', id=id, page=page+1, items=items, _external=True)      
 
     thread.start_new_thread(do_piwik, (request.remote_addr, headers["SERVER_NAME"]+"/laws", "laws"))
     return ret
@@ -135,11 +141,11 @@ def show_all_laws(id):
 # Slugs are a short name unique for every law code
 # Query all available slugs with 'show_all_laws'
 @app.route('/land/<int:id>/laws/<slug>')
+@support_jsonp
 @mimerender(
     default = 'json',
     json = render_json,
 )
-@support_jsonp
 def show_head_of_law(id, slug):
     cur = g.db.execute('\
         select \
@@ -179,12 +185,12 @@ def show_head_of_law(id, slug):
 # Get law text from one specific law code.
 # Use headline id from 'show_head_of_law'.
 @app.route('/land/<int:id>/laws/<slug>/<int:i>')
+@support_jsonp
 @mimerender(
     default = 'json',
     json = render_json,
     html = render_html,
 )
-@support_jsonp
 def show_law_text(id, slug, i):
     cur = g.db.execute('\
         select \
