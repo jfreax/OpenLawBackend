@@ -101,6 +101,7 @@ def show_all_laws():
 
 
 @app.route('/laws/<slug>')
+@support_jsonp
 def show_head_of_law(slug):
     cur = g.db.execute('\
         select \
@@ -138,6 +139,7 @@ def show_head_of_law(slug):
 
 
 @app.route('/laws/<slug>/<int:i>')
+@support_jsonp
 def show_law_text(slug, i):
     cur = g.db.execute('\
         select \
