@@ -75,7 +75,7 @@ def teardown_request(exception):
 # Get a list of all available countries
 # Only id is needed for the other ressources
 # TODO use db to query available countries
-@app.route('/land')
+@app.route('/land', methods=['GET'])
 @support_jsonp
 @mimerender(
     default = 'json',
@@ -103,7 +103,7 @@ def show_all_lands():
 #
 # Pagination is supported. 10 items per page is standard.
 # Abort with code 400 when page number is invalid
-@app.route('/land/<int:id>/laws')
+@app.route('/land/<int:id>/laws', methods=['GET'])
 @support_jsonp
 @mimerender(
     default = 'json',
@@ -143,7 +143,7 @@ def show_all_laws(id):
 # Get all headlines from specified country and law code slug.
 # Slugs are a short name unique for every law code
 # Query all available slugs with 'show_all_laws'
-@app.route('/land/<int:id>/laws/<slug>')
+@app.route('/land/<int:id>/laws/<slug>', methods=['GET'])
 @support_jsonp
 @mimerender(
     default = 'json',
@@ -178,7 +178,7 @@ def show_head_of_law(id, slug):
 
 # Get law text from one specific law code.
 # Use headline id from 'show_head_of_law'.
-@app.route('/land/<int:id>/laws/<slug>/<int:i>')
+@app.route('/land/<int:id>/laws/<slug>/<int:i>', methods=['GET'])
 @support_jsonp
 @mimerender(
     default = 'json',
