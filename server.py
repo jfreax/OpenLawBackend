@@ -76,9 +76,14 @@ def show_all_laws():
     if page == -1:
         items = -1
   
+    count_cur = g.db.execute('select count() from Laws')
+    count = count_cur.fetchone()[0]
+
     cur = g.db.execute('select slug, short_name, long_name from Laws limit ?,?', [page*items, items])
     
-    ret = { "paging":  {}, }
+    ret = { "paging": {},
+            "count": count,
+           }
     ret['data'] = [ [row[1].replace(u'\\', u''),
                      row[0].replace(u'\\', u''),
                      row[2].replace(u'\\', u'')] for row in cur.fetchall()]
