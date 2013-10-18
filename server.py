@@ -3,6 +3,7 @@
 
 from flask import Flask, Response, request, session, g, redirect, url_for, \
      abort, render_template, flash, jsonify, make_response
+from flaskmimerender import mimerender
 from contextlib import closing
 from urllib import unquote
 from functools import wraps
@@ -43,6 +44,8 @@ def support_jsonp(f):
             return f(*args, **kwargs)
     return decorated_function
 
+render_json = jsonify
+render_html = lambda data : data
 
 # Initialize flask
 app = Flask(__name__)
@@ -67,6 +70,10 @@ def teardown_request(exception):
 # Only id is needed for the other ressources
 # TODO use db to query available countries
 @app.route('/land')
+@mimerender(
+    default = 'json',
+    json = render_json,
+)
 @support_jsonp
 def show_all_lands():
     count_cur = g.db.execute('select count() from Laws')
@@ -81,16 +88,20 @@ def show_all_lands():
               }
             ]
         }
-    return jsonify(ret)
+    return ret
 
 
 # Show all law codes from specified country
 # Get all available id's with /land
-# Abort with code 400 when country id does not exist
+# Abort with code 404 when country id does not exist
 #
 # Pagination is supported. 10 items per page is standard.
 # Abort with code 400 when page number is invalid
 @app.route('/land/<int:id>/laws')
+@mimerender(
+    default = 'json',
+    json = render_json,
+)
 @support_jsonp
 def show_all_laws(id):
     try:
@@ -102,7 +113,6 @@ def show_all_laws(id):
     if page == -1:
         items = -1
   
-
     cur = g.db.execute('select slug, short_name, long_name from Laws limit ?,?', [page*items, items])
     
     ret = { "paging": {}, }
@@ -118,27 +128,19 @@ def show_all_laws(id):
         ret['paging']['next'] = url_for('.show_all_laws', page=page+1, items=items, _external=True)      
 
     thread.start_new_thread(do_piwik, (request.remote_addr, headers["SERVER_NAME"]+"/laws", "laws"))
-    return jsonify(ret)
+    return ret
 
 
 # Get all headlines from specified country and law code slug.
 # Slugs are a short name unique for every law code
 # Query all available slugs with 'show_all_laws'
 @app.route('/land/<int:id>/laws/<slug>')
+@mimerender(
+    default = 'json',
+    json = render_json,
+)
 @support_jsonp
-def show_head_of_law(slug):
-    cur = g.db.execute('\
-        select \
-            Law_Heads.headline, \
-            Law_Heads.depth \
-        from \
-            Laws, \
-            Law_Heads \
-        where \
-            Law_Heads.law_id == Laws.id \
-            and Laws.slug == ?', [slug])
-    entries = [dict(headline=row[0], depth=row[1]) for row in cur.fetchall()]
-
+def show_head_of_law(id, slug):
     cur = g.db.execute('\
         select \
             Laws.long_name \
@@ -154,19 +156,36 @@ def show_head_of_law(slug):
     thread.start_new_thread(do_piwik,
         (request.remote_addr, headers["SERVER_NAME"]+"/"+slug, u"%s - %s" % (slug, law_name.replace(u'\\', u'')))
     )
+  
+    cur = g.db.execute('\
+        select \
+            Law_Heads.id, \
+            Law_Heads.headline, \
+            Law_Heads.depth \
+        from \
+            Laws, \
+            Law_Heads \
+        where \
+            Law_Heads.law_id == Laws.id \
+            and Laws.slug == ?', [slug])
 
-    return Response(
-            response = render_template('heads', heads=entries),
-            status = 200,
-            mimetype = "application/json; charset=utf-8"
-        )
+    ret = {}
+    ret['data'] = [ {'id': row[0],
+                     'name': row[1].replace(u'\\', u''),
+                     'depth': row[2],} for row in cur.fetchall()]
+    return ret
 
 
 # Get law text from one specific law code.
 # Use headline id from 'show_head_of_law'.
 @app.route('/land/<int:id>/laws/<slug>/<int:i>')
+@mimerender(
+    default = 'json',
+    json = render_json,
+    html = render_html,
+)
 @support_jsonp
-def show_law_text(slug, i):
+def show_law_text(id, slug, i):
     cur = g.db.execute('\
         select \
             Law_Texts.text, \
@@ -191,11 +210,7 @@ def show_law_text(slug, i):
         (request.remote_addr, headers["SERVER_NAME"]+"/"+slug+"/"+str(i), u"%s - %s" % (slug, headline.replace(u'\\', u'')))
     )
 
-    return Response(
-            response = text,
-            status = 200,
-            mimetype = "application/json; charset=utf-8"
-        )
+    return { 'data': text }
 
 
 # Custom http return code pages
